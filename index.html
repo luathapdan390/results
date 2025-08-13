@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">Loading...</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .goal-box {
+            background-color: #e9ecef;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #randomGoal {
+            font-size: 18px;
+            font-weight: bold;
+            color: #495057;
+        }
+        .form-group {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #statusMessage {
+            margin-top: 20px;
+            font-weight: bold;
+            display: none;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 id="sheetTitle">Loading...</h2>
+    <div class="goal-box">
+        <p id="randomGoal">Loading random goal...</p>
+    </div>
+
+    <form id="actionForm">
+        <div class="form-group">
+            <label for="actionValue">Nhập hành động:</label>
+            <input type="text" id="actionValue" name="actionValue" placeholder="Nhập giá trị" required>
+        </div>
+        <button type="submit">Lưu hành động</button>
+    </form>
+    
+    <div id="statusMessage"></div>
+</div>
+
+<script>
+    const form = document.getElementById('actionForm');
+    const statusMessage = document.getElementById('statusMessage');
+    const sheetTitle = document.getElementById('sheetTitle');
+    const pageTitle = document.getElementById('pageTitle');
+    const randomGoalElement = document.getElementById('randomGoal');
+
+    // **Bạn cần thay thế URL này bằng URL Google Apps Script bạn đã triển khai**
+    const webAppUrl = 'https://script.google.com/macros/s/AKfycbzfKucI3pkL1smKA2LZKEe5AF67X6J06dDgryOyBeCKw_9OTRvoFGHORaEjahrRx-A25w/exec';
+
+    // Hàm để lấy dữ liệu ban đầu
+    async function loadData() {
+        try {
+            const response = await fetch(webAppUrl + '?action=getData');
+            const data = await response.json();
+            
+            sheetTitle.textContent = data.title;
+            pageTitle.textContent = data.title;
+            randomGoalElement.textContent = data.goal;
+
+        } catch (error) {
+            sheetTitle.textContent = 'Lỗi tải dữ liệu';
+            pageTitle.textContent = 'Lỗi';
+            randomGoalElement.textContent = 'Không thể tải mục tiêu ngẫu nhiên.';
+            console.error('Error loading data:', error);
+        }
+    }
+
+    // Gửi dữ liệu bằng iframe
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const goal = randomGoalElement.textContent;
+        const value = document.getElementById('actionValue').value;
+
+        if (goal === 'No goals found in column A.' || goal === 'Không thể tải mục tiêu ngẫu nhiên.') {
+             statusMessage.textContent = `❌ Lỗi: Không thể lưu dữ liệu vì không có mục tiêu.`;
+             statusMessage.className = 'error';
+             statusMessage.style.display = 'block';
+             return;
+        }
+
+        statusMessage.textContent = 'Đang gửi dữ liệu...';
+        statusMessage.className = '';
+        statusMessage.style.display = 'block';
+
+        const data = { goal: goal, value: value };
+
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = webAppUrl + '?action=saveData&data=' + encodeURIComponent(JSON.stringify(data));
+        document.body.appendChild(iframe);
+
+        iframe.onload = () => {
+            statusMessage.textContent = '✅ Dữ liệu đã được lưu thành công!';
+            statusMessage.className = 'success';
+            form.reset();
+            document.body.removeChild(iframe);
+            
+            // Tải lại dữ liệu sau khi lưu để lấy mục tiêu ngẫu nhiên mới
+            loadData();
+        };
+        
+        iframe.onerror = () => {
+            statusMessage.textContent = `❌ Lỗi: Không thể kết nối tới Google Apps Script.`;
+            statusMessage.className = 'error';
+            document.body.removeChild(iframe);
+        };
+    });
+
+    // Tải dữ liệu khi trang web được mở
+    loadData();
+</script>
+
+</body>
+</html>
